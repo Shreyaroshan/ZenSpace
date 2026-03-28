@@ -83,36 +83,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildMobileLayout(bool isDark) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Column(
-            children: [
-              _buildMonthHeader(isDark),
-              const SizedBox(height: 10),
-              _buildCalendarGrid(isDark),
-              const SizedBox(height: 12),
-              _buildLegend(),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildRecentLogsTitle(isDark),
-                const SizedBox(height: 10),
-                Expanded(child: _buildLogsList(isDark)),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildMonthHeader(isDark),
+          const SizedBox(height: 12),
+          _buildCalendarGrid(isDark, isDesktop: false),
+          const SizedBox(height: 16),
+          _buildLegend(),
+          const SizedBox(height: 24),
+          _buildRecentLogsTitle(isDark),
+          const SizedBox(height: 12),
+          // In mobile, we don't use Expanded inside SingleChildScrollView
+          _buildLogsList(isDark, shrinkWrap: true),
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 
@@ -124,13 +112,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
         children: [
           // Fixed Left Side: Calendar and Legend
           SizedBox(
-            width: 450, // Fixed width for calendar on desktop
+            width: 400, // Reduced width for desktop
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildMonthHeader(isDark),
                 const SizedBox(height: 16),
-                _buildCalendarGrid(isDark),
+                _buildCalendarGrid(isDark, isDesktop: true),
                 const SizedBox(height: 20),
                 _buildLegend(),
               ],
@@ -166,11 +155,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildLogsList(bool isDark) {
+  Widget _buildLogsList(bool isDark, {bool shrinkWrap = false}) {
     if (_allEntries.isEmpty) return _buildEmptyState(isDark);
     
     return ListView.builder(
       itemCount: _allEntries.length,
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 20),
       itemBuilder: (context, index) => _buildMoodListItem(_allEntries[index], isDark),
     );
@@ -241,7 +232,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildCalendarGrid(bool isDark) {
+  Widget _buildCalendarGrid(bool isDark, {required bool isDesktop}) {
     final daysInMonth = DateTime(_focusedDay.year, _focusedDay.month + 1, 0).day;
     final firstWeekday = DateTime(_focusedDay.year, _focusedDay.month, 1).weekday;
     const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -253,6 +244,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -274,10 +266,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+              mainAxisSpacing: isDesktop ? 4 : 8,
+              crossAxisSpacing: isDesktop ? 4 : 8,
+              childAspectRatio: isDesktop ? 1.3 : 1.0, // More compact for desktop
             ),
             itemCount: 42,
             itemBuilder: (_, i) {
