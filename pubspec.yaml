@@ -1,0 +1,27 @@
+name: zenspace
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.3.0          # SQLite local database
+  path: ^1.9.0              # For database file path
+  fl_chart: ^0.68.0         # Charts for mood trends
+  table_calendar: ^3.1.0    # Calendar widget
+  shared_preferences: ^2.2.2 # Store streak/settings
+  confetti: ^0.7.0          # Confetti animations on achievements
+  intl: ^0.20.2             # Date formatting
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
