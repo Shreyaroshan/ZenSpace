@@ -1,5 +1,5 @@
 name: zenspace
-description: "A new Flutter project."
+description: "A ZenSpace mental wellness mobile application."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,18 +10,19 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  sqflite: ^2.3.0          # SQLite local database
-  path: ^1.9.0              # For database file path
-  fl_chart: ^0.68.0         # Charts for mood trends
-  table_calendar: ^3.1.0    # Calendar widget
-  shared_preferences: ^2.2.2 # Store streak/settings
-  confetti: ^0.7.0          # Confetti animations on achievements
-  intl: ^0.20.2             # Date formatting
+  sqflite: ^2.3.0
+  path: ^1.9.0
+  shared_preferences: ^2.2.2
+  intl: ^0.20.2
+  confetti: ^0.7.0
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  mocktail: ^1.0.3
+  sqflite_common_ffi: ^2.3.0+2
 
 flutter:
   uses-material-design: true

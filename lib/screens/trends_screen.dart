@@ -44,7 +44,6 @@ class _TrendsScreenState extends State<TrendsScreen> {
         _avgMood = sum / entries.length;
         _totalCheckIns = entries.length;
 
-        // 2. Calculate Best Day (Day of week with highest avg)
         final Map<String, List<int>> dayScores = {};
         for (var e in entries) {
           final dayName = DateFormat('EEEE').format(DateTime.parse(e['date']));
@@ -67,20 +66,22 @@ class _TrendsScreenState extends State<TrendsScreen> {
         _bestDay = '--';
       }
 
-      // 3. Process Visual Chart Data (Always last 7 days for consistency)
-      final List<Map<String, dynamic>> last7Days = [];
-      for (int i = 6; i >= 0; i--) {
-        final date = now.subtract(Duration(days: i));
+      // 2. Process Chart Data starting from Sunday
+      final List<Map<String, dynamic>> sundayToSaturday = [];
+      final sunday = now.subtract(Duration(days: now.weekday % 7));
+      
+      for (int i = 0; i < 7; i++) {
+        final date = sunday.add(Duration(days: i));
         final dateStr = date.toIso8601String().substring(0, 10);
         final entry = entries.firstWhere((e) => e['date'] == dateStr, orElse: () => {});
         
-        last7Days.add({
+        sundayToSaturday.add({
           'day': DateFormat('E').format(date).substring(0, 1),
           'mood': entry.isNotEmpty ? (entry['mood_score'] as int? ?? 0) : 0,
         });
       }
 
-      // 4. Process Distribution (Levels 1-5)
+      // 3. Process Distribution
       final List<Map<String, dynamic>> distList = [];
       for (int level = 5; level >= 1; level--) {
         int count = entries.where((e) => e['mood_score'] == level).length;
@@ -92,7 +93,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
       }
 
       setState(() {
-        _chartData = last7Days;
+        _chartData = sundayToSaturday;
         _distribution = distList;
         _isLoading = false;
       });
@@ -174,14 +175,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
         children: [
           Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Text(
-            value, 
-            style: TextStyle(
-              fontSize: value.length > 8 ? 18 : 22, 
-              fontWeight: FontWeight.w900, 
-              color: isDark ? Colors.white : const Color(0xFF1F2937)
-            )
-          ),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF1F2937))),
           const SizedBox(height: 4),
           Text(sub, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w700)),
         ],
@@ -204,11 +198,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
             children: [
               Text(
                 'Mood Activity',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1F2937)),
               ),
               _buildRangeToggle(isDark),
             ],
@@ -218,7 +208,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              '$_totalCheckIns check-ins in the last $_selectedRange days',
+              '$_totalCheckIns logs in the last $_selectedRange days',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
             ),
           ),
@@ -273,7 +263,6 @@ class _TrendsScreenState extends State<TrendsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: _chartData.map((d) {
           int moodLevel = d['mood'] as int;
-          // Reduced height from 80 to 65 to prevent overflow
           double height = moodLevel == 0 ? 5.0 : (moodLevel / 5) * 65.0;
           Color color = moodLevel == 0 ? Colors.grey.withOpacity(0.1) : MoodConfig.getMoodColor(moodLevel);
 

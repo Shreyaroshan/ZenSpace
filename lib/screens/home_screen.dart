@@ -19,14 +19,13 @@ class _HomeScreenState extends State<HomeScreen> {
   int _journalCount = 0;
   int _badgeCount = 0;
   List<double> _weeklyValues = List.filled(7, 0.0);
-  List<String> _weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    // Listen for global refreshes (e.g. from MoodLogger)
     homeRefreshNotifier.addListener(_loadData);
   }
 
@@ -46,35 +45,41 @@ class _HomeScreenState extends State<HomeScreen> {
       final totalEntries = await DatabaseHelper.instance.getTotalMoodCount();
       final journalEntries = await DatabaseHelper.instance.getGratitudeEntries();
       
-      // Calculate unlocked badges
       final moodEntries = await DatabaseHelper.instance.getAllMoodEntries();
       final breathingCount = await DatabaseHelper.instance.getBreathingSessionCount();
       final uniqueMoods = await DatabaseHelper.instance.getUniqueMoodScores();
       
       int badges = 0;
-      if (moodEntries.any((e) => DateTime.parse(e['created_at']).hour < 8)) badges++; // Early Bird
-      if (journalEntries.length >= 10) badges++; // Gratitude Guru
-      if (breathingCount >= 5) badges++; // Zen Master
-      if (streak >= 7) badges++; // Consistency King
-      if (uniqueMoods.length >= 5) badges++; // Mood Explorer
-      if (moodEntries.any((e) => DateTime.parse(e['created_at']).hour >= 22)) badges++; // Night Owl
+      if (moodEntries.any((e) {
+        final timeStr = e['created_at'] ?? e['date'];
+        return timeStr != null && DateTime.parse(timeStr).hour < 8;
+      })) badges++;
+      if (journalEntries.length >= 10) badges++;
+      if (breathingCount >= 5) badges++;
+      if (streak >= 7) badges++;
+      if (uniqueMoods.length >= 5) badges++;
+      if (moodEntries.any((e) {
+        final timeStr = e['created_at'] ?? e['date'];
+        return timeStr != null && DateTime.parse(timeStr).hour >= 22;
+      })) badges++;
 
-      // Last 7 days for the mini chart
+      // Weekly Overview starting from Sunday
       final now = DateTime.now();
-      final weekEntries = await DatabaseHelper.instance.getRecentMoods(7);
-
-      // Build a map of dateString → moodScore for quick lookup
-      final Map<String, int> moodByDate = {
-        for (final e in weekEntries)
-          (e['date'] as String).substring(0, 10): (e['mood_score'] as int? ?? 0),
-      };
-
+      // Find the most recent Sunday
+      final sunday = now.subtract(Duration(days: now.weekday % 7));
       final List<double> weeklyValues = [];
       final List<String> dynamicLabels = [];
-      for (int i = 6; i >= 0; i--) {
-        final date = now.subtract(Duration(days: i));
-        final key = date.toIso8601String().substring(0, 10);
-        final score = moodByDate[key] ?? 0;
+
+      for (int i = 0; i < 7; i++) {
+        final date = sunday.add(Duration(days: i));
+        final dateStr = date.toIso8601String().substring(0, 10);
+        final entry = await DatabaseHelper.instance.getMoodForDate(dateStr);
+        
+        int score = 0;
+        if (entry != null) {
+          score = (entry['mood_score'] as int?) ?? 0;
+        }
+
         weeklyValues.add(score == 0 ? 0.0 : score / 5.0);
         dynamicLabels.add(DateFormat('E').format(date).substring(0, 1));
       }
