@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 9,
+      version: 10, // Bumped to 10 to force a clean schema state
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -57,42 +57,67 @@ class DatabaseHelper {
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 8) {
+    if (oldVersion < 10) {
+      // If we are coming from any previous version, let's ensure the schema is correct.
+      // The most reliable way in SQLite to remove a problematic NOT NULL column (like mood_label)
+      // is the "rename and recreate" pattern.
       try {
-        await db.execute('ALTER TABLE mood_entries RENAME TO mood_entries_old');
+        // Check if mood_entries exists
+        var tableInfo = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='mood_entries'");
+        if (tableInfo.isNotEmpty) {
+          // Check if mood_label exists in current table
+          var columns = await db.rawQuery("PRAGMA table_info(mood_entries)");
+          bool hasMoodLabel = columns.any((c) => c['name'] == 'mood_label');
+
+          if (hasMoodLabel) {
+            await db.execute('ALTER TABLE mood_entries RENAME TO mood_entries_backup');
+            
+            await db.execute('''
+              CREATE TABLE mood_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT UNIQUE,
+                mood_score INTEGER NOT NULL,
+                note TEXT,
+                created_at TEXT
+              )
+            ''');
+
+            // Try to recover data, prioritizing mood_score, then mood_level
+            await db.execute('''
+              INSERT INTO mood_entries (date, mood_score, note, created_at)
+              SELECT date, 
+                     COALESCE(mood_score, mood_level, 3), 
+                     note, 
+                     COALESCE(created_at, date)
+              FROM mood_entries_backup
+              GROUP BY date
+            ''');
+
+            await db.execute('DROP TABLE mood_entries_backup');
+          }
+        }
+        
+        // Ensure other tables exist
         await db.execute('''
-          CREATE TABLE mood_entries (
+          CREATE TABLE IF NOT EXISTS gratitude_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT UNIQUE,
-            mood_score INTEGER NOT NULL,
-            note TEXT,
+            date TEXT,
+            gratitude_text TEXT NOT NULL,
             created_at TEXT
           )
         ''');
-        await db.execute('''
-          INSERT INTO mood_entries (date, mood_score, note, created_at)
-          SELECT date,
-                 MAX(COALESCE(mood_score, mood_level, 3)),
-                 MAX(note),
-                 MAX(COALESCE(created_at, date))
-          FROM mood_entries_old
-          GROUP BY date
-        ''');
-        await db.execute('DROP TABLE mood_entries_old');
-      } catch (e) {
-        debugPrint('Migration error V8: $e');
-      }
-    }
 
-    if (oldVersion < 9) {
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS breathing_sessions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          technique_name TEXT,
-          duration_seconds INTEGER,
-          created_at TEXT
-        )
-      ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS breathing_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            technique_name TEXT,
+            duration_seconds INTEGER,
+            created_at TEXT
+          )
+        ''');
+      } catch (e) {
+        debugPrint('Migration error to V10: $e');
+      }
     }
   }
 
@@ -113,7 +138,6 @@ class DatabaseHelper {
     );
   }
 
-  /// Deletes a mood entry by its ID.
   Future<void> deleteMood(int id) async {
     final db = await database;
     await db.delete('mood_entries', where: 'id = ?', whereArgs: [id]);
@@ -198,7 +222,6 @@ class DatabaseHelper {
     return (result.first['count'] as int?) ?? 0;
   }
 
-  /// Deletes a single gratitude entry by its primary key.
   Future<void> deleteGratitude(int id) async {
     final db = await database;
     await db.delete('gratitude_entries', where: 'id = ?', whereArgs: [id]);

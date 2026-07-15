@@ -15,18 +15,12 @@ import 'app_state.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Warm up DB
-  try {
-    await DatabaseHelper.instance.database;
-    debugPrint('✅ Database initialised');
-  } catch (e) {
-    debugPrint('❌ Database init error: $e');
-  }
+  // Initialize DB and Streak in parallel for faster startup
+  await Future.wait([
+    DatabaseHelper.instance.database,
+    StreakHelper.updateStreak(),
+  ]);
 
-  // Initial streak calculation on launch
-  await StreakHelper.updateStreak();
-
-  // Check onboarding flag directly via SharedPreferences
   final prefs = await SharedPreferences.getInstance();
   final onboardingDone = prefs.getBool('onboarding_done') ?? false;
 
@@ -35,7 +29,6 @@ void main() async {
 
 class ZenSpaceApp extends StatelessWidget {
   final bool showOnboarding;
-
   const ZenSpaceApp({super.key, this.showOnboarding = false});
 
   @override
@@ -69,9 +62,7 @@ class ZenSpaceApp extends StatelessWidget {
             cardTheme: CardThemeData(
               elevation: 0,
               color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
           ),
           darkTheme: ThemeData(
@@ -97,14 +88,10 @@ class ZenSpaceApp extends StatelessWidget {
             cardTheme: CardThemeData(
               elevation: 0,
               color: const Color(0xFF1E1E2E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
           ),
-          home: showOnboarding
-              ? const OnboardingScreen()
-              : const MainNavigation(),
+          home: showOnboarding ? const OnboardingScreen() : const MainNavigation(),
         );
       },
     );
@@ -113,7 +100,6 @@ class ZenSpaceApp extends StatelessWidget {
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
-
   @override
   State<MainNavigation> createState() => _MainNavigationState();
 }
@@ -143,8 +129,7 @@ class _MainNavigationState extends State<MainNavigation> {
       child: Scaffold(
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
-          transitionBuilder: (child, animation) =>
-              FadeTransition(opacity: animation, child: child),
+          transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
           child: KeyedSubtree(
             key: ValueKey(_currentIndex),
             child: _screens[_currentIndex],
@@ -163,50 +148,18 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
           child: NavigationBar(
             selectedIndex: _currentIndex,
-            onDestinationSelected: (i) =>
-                setState(() => _currentIndex = i),
+            onDestinationSelected: (i) => setState(() => _currentIndex = i),
             height: 72,
-            backgroundColor:
-                isDark ? const Color(0xFF1E1E2E) : Colors.white,
-            indicatorColor:
-                const Color(0xFF6366F1).withOpacity(0.15),
+            backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+            indicatorColor: const Color(0xFF6366F1).withOpacity(0.15),
             destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.sentiment_satisfied_alt_outlined),
-                selectedIcon:
-                    Icon(Icons.sentiment_satisfied_alt_rounded),
-                label: 'Mood',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.air_rounded),
-                selectedIcon: Icon(Icons.air_rounded),
-                label: 'Breathe',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.calendar_month_outlined),
-                selectedIcon: Icon(Icons.calendar_month_rounded),
-                label: 'Calendar',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.bar_chart_outlined),
-                selectedIcon: Icon(Icons.bar_chart_rounded),
-                label: 'Trends',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.auto_stories_outlined),
-                selectedIcon: Icon(Icons.auto_stories_rounded),
-                label: 'Journal',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.emoji_events_outlined),
-                selectedIcon: Icon(Icons.emoji_events_rounded),
-                label: 'Badges',
-              ),
+              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+              NavigationDestination(icon: Icon(Icons.sentiment_satisfied_alt_outlined), selectedIcon: Icon(Icons.sentiment_satisfied_alt_rounded), label: 'Mood'),
+              NavigationDestination(icon: Icon(Icons.air_rounded), selectedIcon: Icon(Icons.air_rounded), label: 'Breathe'),
+              NavigationDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month_rounded), label: 'Calendar'),
+              NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart_rounded), label: 'Trends'),
+              NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories_rounded), label: 'Journal'),
+              NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events_rounded), label: 'Badges'),
             ],
           ),
         ),
