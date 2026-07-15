@@ -10,18 +10,7 @@ import 'screens/achievements_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'database_helper.dart';
 import 'streak_helper.dart';
-
-/// Dispatch this from any child widget to switch the bottom nav tab.
-class TabSwitchNotification extends Notification {
-  final int index;
-  TabSwitchNotification(this.index);
-}
-
-/// Global theme notifier.
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
-
-/// Global refresh notifier to trigger UI updates across screens.
-final ValueNotifier<int> homeRefreshNotifier = ValueNotifier(0);
+import 'app_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -178,8 +167,9 @@ class _MainNavigationState extends State<MainNavigation> {
                 setState(() => _currentIndex = i),
             height: 72,
             backgroundColor:
-            isDark ? const Color(0xFF1E1E2E) : Colors.white,
-            indicatorColor: const Color(0xFF6366F1).withOpacity(0.15),
+                isDark ? const Color(0xFF1E1E2E) : Colors.white,
+            indicatorColor:
+                const Color(0xFF6366F1).withOpacity(0.15),
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
@@ -188,7 +178,8 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
               NavigationDestination(
                 icon: Icon(Icons.sentiment_satisfied_alt_outlined),
-                selectedIcon: Icon(Icons.sentiment_satisfied_alt_rounded),
+                selectedIcon:
+                    Icon(Icons.sentiment_satisfied_alt_rounded),
                 label: 'Mood',
               ),
               NavigationDestination(

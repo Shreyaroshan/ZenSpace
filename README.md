@@ -5,16 +5,19 @@ ZenSpace is a premium, cross-platform mental wellness application built with Flu
 ## 📸 Screenshots
 
 ### Dashboard & Tracking
+
 | Home Screen | Mood Logger | Visual Calendar |
 | :---: | :---: | :---: |
 | ![Home](screenshots/home.png) | ![Mood](screenshots/mood.png) | ![Calendar](screenshots/calendar.png) |
 
 ### Analytics & Progress
+
 | Trends Analytics | Achievements | Gratitude Journal |
 | :---: | :---: | :---: |
 | ![Trends](screenshots/trends.png) | ![Badges](screenshots/badges.png) | ![Journal](screenshots/journal.png) |
 
 ### Mindfulness & Rewards
+
 | Breathing Exercise | Daily Prompt | Confetti Reward |
 | :---: | :---: | :---: |
 | ![Breathe](screenshots/breathe1.png) | ![Add Entry](screenshots/journal_add.png) | ![Confetti](screenshots/confetti.png) |

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../database_helper.dart';
 import '../mood_config.dart';
 import '../streak_helper.dart';
-import '../main.dart'; // To access streak refresh logic
+import '../app_state.dart';
 
 class MoodLoggerScreen extends StatefulWidget {
   const MoodLoggerScreen({super.key});

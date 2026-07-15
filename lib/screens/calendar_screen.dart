@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../database_helper.dart';
 import '../mood_config.dart';
-import '../main.dart';
+import '../app_state.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -21,9 +21,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void initState() {
     super.initState();
     _fetchData();
+    homeRefreshNotifier.addListener(_fetchData);
+  }
+
+  @override
+  void dispose() {
+    homeRefreshNotifier.removeListener(_fetchData);
+    super.dispose();
   }
 
   Future<void> _fetchData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final entries = await DatabaseHelper.instance.getMoodsForRange(
@@ -44,14 +52,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
       }
 
-      setState(() {
-        _allEntries = entries.reversed.toList();
-        _dayMoodColors = colors;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _allEntries = entries.reversed.toList();
+          _dayMoodColors = colors;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('CalendarScreen fetch error: $e');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -83,24 +93,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildMobileLayout(bool isDark) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildMonthHeader(isDark),
-          const SizedBox(height: 12),
-          _buildCalendarGrid(isDark, isDesktop: false),
-          const SizedBox(height: 16),
-          _buildLegend(),
-          const SizedBox(height: 24),
-          _buildRecentLogsTitle(isDark),
-          const SizedBox(height: 12),
-          // In mobile, we don't use Expanded inside SingleChildScrollView
-          _buildLogsList(isDark, shrinkWrap: true),
-          const SizedBox(height: 40),
-        ],
-      ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Column(
+            children: [
+              _buildMonthHeader(isDark),
+              const SizedBox(height: 10),
+              _buildCalendarGrid(isDark, isDesktop: false),
+              const SizedBox(height: 12),
+              _buildLegend(),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildRecentLogsTitle(isDark),
+                const SizedBox(height: 10),
+                Expanded(child: _buildLogsList(isDark)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -110,9 +132,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Fixed Left Side: Calendar and Legend
           SizedBox(
-            width: 400, // Reduced width for desktop
+            width: 400, 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -126,7 +147,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           const SizedBox(width: 48),
-          // Scrollable Right Side: Recent Logs
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,13 +175,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildLogsList(bool isDark, {bool shrinkWrap = false}) {
+  Widget _buildLogsList(bool isDark) {
     if (_allEntries.isEmpty) return _buildEmptyState(isDark);
     
     return ListView.builder(
       itemCount: _allEntries.length,
-      shrinkWrap: shrinkWrap,
-      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 20),
       itemBuilder: (context, index) => _buildMoodListItem(_allEntries[index], isDark),
     );
@@ -270,7 +288,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               crossAxisCount: 7,
               mainAxisSpacing: isDesktop ? 4 : 8,
               crossAxisSpacing: isDesktop ? 4 : 8,
-              childAspectRatio: isDesktop ? 1.3 : 1.0, // More compact for desktop
+              childAspectRatio: isDesktop ? 1.3 : 1.0,
             ),
             itemCount: 42,
             itemBuilder: (_, i) {
